@@ -258,6 +258,127 @@
   }
 
   .disabled-overlay { opacity: 0.5; pointer-events: none; }
+
+  .merge-btn {
+    height: 28px;
+    padding: 0 12px;
+    background: white;
+    border: 1px solid #d8dade;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .merge-btn:hover { background: #f5f8ff; border-color: #2563eb; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 12px;
+    width: min(720px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .modal-header { padding: 18px 20px 6px; }
+  .modal-header h2 { font-size: 16px; font-weight: 600; color: #111; }
+  .modal-header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+  .merge-anchor {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 20px 4px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+  .merge-anchor img { width: 56px; height: 56px; object-fit: contain; background: white; border-radius: 4px; }
+  .merge-anchor .tag { font-size: 11px; font-weight: 700; color: #2563eb; letter-spacing: 0.05em; }
+  .merge-anchor .desc { font-size: 13px; color: #374151; }
+
+  .merge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    padding: 12px 20px;
+    overflow-y: auto;
+  }
+  .merge-thumb {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: white;
+    transition: border-color 0.12s, background 0.12s;
+    position: relative;
+  }
+  .merge-thumb:hover { border-color: #c7d2fe; }
+  .merge-thumb.selected { border-color: #2563eb; background: #eff6ff; }
+  .merge-thumb img {
+    width: 100%;
+    height: 96px;
+    object-fit: contain;
+    background: #f8fafc;
+    border-radius: 4px;
+  }
+  .merge-thumb .label { font-size: 12px; color: #374151; display: flex; justify-content: space-between; gap: 6px; }
+  .merge-thumb .check {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .merge-thumb.selected .check { display: flex; }
+
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid #f0f0f0;
+  }
+  .modal-footer .hint { margin-right: auto; font-size: 12px; color: #6b7280; }
+  .btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .btn-secondary { background: white; border-color: #d8dade; color: #374151; }
+  .btn-secondary:hover { background: #f3f4f6; }
+  .btn-primary { background: #2563eb; color: white; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #93c5fd; cursor: default; }
 </style>
 </head>
 <body>
@@ -268,6 +389,11 @@
   <div class="main">
     <div class="image-card">
       <div class="image-card-topbar">
+        <button class="merge-btn" id="mergeBtn" title="Merge this image with others">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3M9 12h6"/></svg>
+          Merge
+        </button>
+        <span style="flex:1"></span>
         <span class="include-label">Include</span>
         <button class="checkbox-btn" id="includeBtn">
           <svg width="12" height="12" viewBox="0 0 10 10" fill="none">
@@ -316,6 +442,22 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="mergeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Merge images</h2>
+      <p>Select one or more images to combine with the current one into a single figure.</p>
+    </div>
+    <div class="merge-anchor" id="mergeAnchor"></div>
+    <div class="merge-grid" id="mergeGrid"></div>
+    <div class="modal-footer">
+      <span class="hint" id="mergeHint">No images selected</span>
+      <button class="btn btn-secondary" id="mergeCancel">Cancel</button>
+      <button class="btn btn-primary" id="mergeConfirm" disabled>Merge</button>
+    </div>
+  </div>
+</div>
+
 <div class="state-viewer">
   <h2>Live State (images map)</h2>
   <div id="stateOutput"></div>
@@ -326,8 +468,9 @@ async function init() {
   const res = await fetch('/state');
   const initialImages = await res.json();
 
-  const keys = Object.keys(initialImages);
+  let keys = Object.keys(initialImages);
   let currentIndex = 0;
+  let imgCacheBust = 0;
 
   const state = {};
   keys.forEach(k => {
@@ -352,7 +495,8 @@ async function init() {
     const key = keys[currentIndex];
     const s = state[key];
 
-    document.getElementById('imageArea').innerHTML = `<img src="/images/${s.path}" alt="${key}" onerror="this.outerHTML='<div class=\\'image-placeholder\\'>Image not found: ${s.path}</div>'" />`;
+    const bust = imgCacheBust ? `?v=${imgCacheBust}` : '';
+    document.getElementById('imageArea').innerHTML = `<img src="/images/${s.path}${bust}" alt="${key}" onerror="this.outerHTML='<div class=\\'image-placeholder\\'>Image not found: ${s.path}</div>'" />`;
 
     document.getElementById('includeBtn').innerHTML = s.include
       ? `<svg width="12" height="12" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
@@ -506,6 +650,121 @@ async function init() {
     state[keys[currentIndex]].captions = document.getElementById('captionInput').value;
     renderState();
   });
+
+  // ---- Merge feature -------------------------------------------------------
+  const mergeModal = document.getElementById('mergeModal');
+  const mergeGrid = document.getElementById('mergeGrid');
+  const mergeAnchor = document.getElementById('mergeAnchor');
+  const mergeHint = document.getElementById('mergeHint');
+  const mergeConfirm = document.getElementById('mergeConfirm');
+  const mergeCancel = document.getElementById('mergeCancel');
+  let mergeSelection = new Set();
+
+  function describe(key) {
+    const s = state[key];
+    const num = s.number && s.number !== 'N/A' ? `Fig ${s.number}` : key.replace('EXTRACTED_IMAGE_', 'Image ');
+    const page = s.page != null ? ` · p${s.page}` : '';
+    return `${num}${page}`;
+  }
+
+  function updateMergeFooter() {
+    const n = mergeSelection.size;
+    mergeHint.textContent = n === 0 ? 'No images selected' : `${n} image${n > 1 ? 's' : ''} selected — will merge ${n + 1} in total`;
+    mergeConfirm.disabled = n === 0;
+    mergeConfirm.textContent = n === 0 ? 'Merge' : `Merge ${n + 1} images`;
+  }
+
+  function openMergeModal() {
+    saveCurrentFields();
+    const anchorKey = keys[currentIndex];
+    mergeSelection = new Set();
+
+    mergeAnchor.innerHTML = `
+      <img src="/images/${state[anchorKey].path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}" alt="${anchorKey}" />
+      <div>
+        <div class="tag">CURRENT</div>
+        <div class="desc">${describe(anchorKey)}</div>
+      </div>`;
+
+    const others = keys.filter(k => k !== anchorKey);
+    if (others.length === 0) {
+      mergeGrid.innerHTML = `<p style="color:#6b7280;font-size:13px;padding:8px;">No other images available to merge.</p>`;
+    } else {
+      mergeGrid.innerHTML = others.map(k => `
+        <div class="merge-thumb" data-key="${k}">
+          <div class="check">
+            <svg width="12" height="12" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <img src="/images/${state[k].path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}" alt="${k}"
+               onerror="this.style.visibility='hidden'" />
+          <div class="label"><span>${describe(k)}</span></div>
+        </div>`).join('');
+
+      mergeGrid.querySelectorAll('.merge-thumb').forEach(el => {
+        el.addEventListener('click', () => {
+          const k = el.dataset.key;
+          if (mergeSelection.has(k)) { mergeSelection.delete(k); el.classList.remove('selected'); }
+          else { mergeSelection.add(k); el.classList.add('selected'); }
+          updateMergeFooter();
+        });
+      });
+    }
+
+    updateMergeFooter();
+    mergeModal.classList.add('open');
+  }
+
+  function closeMergeModal() {
+    mergeModal.classList.remove('open');
+  }
+
+  async function confirmMerge() {
+    const anchorKey = keys[currentIndex];
+    const selected = [...mergeSelection];
+    if (selected.length === 0) return;
+
+    mergeConfirm.disabled = true;
+    mergeConfirm.textContent = 'Merging…';
+    try {
+      const res = await fetch('/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: [anchorKey, ...selected] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'merge failed');
+
+      const mergedKey = data.merged_key;
+      const removed = data.removed_keys || [];
+
+      // carry over callout labels from the panels we're absorbing
+      removed.forEach(k => {
+        Object.assign(state[mergedKey].callout_numbers, state[k].callout_numbers || {});
+      });
+      // adopt the new image + geometry from the server, keep the user's caption/number
+      state[mergedKey].path = data.image.path;
+      ['bbox_normalized', 'page', 'dpi', 'page_width_px', 'page_height_px'].forEach(f => {
+        if (data.image[f] != null) state[mergedKey][f] = data.image[f];
+      });
+      removed.forEach(k => delete state[k]);
+
+      keys = keys.filter(k => !removed.includes(k));
+      currentIndex = Math.max(0, keys.indexOf(mergedKey));
+      imgCacheBust = Date.now();
+
+      closeMergeModal();
+      renderMain();
+    } catch (err) {
+      mergeHint.textContent = `Error: ${err.message}`;
+      mergeConfirm.disabled = false;
+      updateMergeFooter();
+    }
+  }
+
+  document.getElementById('mergeBtn').addEventListener('click', openMergeModal);
+  mergeCancel.addEventListener('click', closeMergeModal);
+  mergeConfirm.addEventListener('click', confirmMerge);
+  mergeModal.addEventListener('click', e => { if (e.target === mergeModal) closeMergeModal(); });
 
   renderMain();
 }
