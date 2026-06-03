@@ -540,9 +540,8 @@
   <div class="modal">
     <div class="modal-header">
       <h2>Merge images</h2>
-      <p>Select one or more images to combine with the current one into a single figure.</p>
+      <p>Select two or more images to combine into a single figure. The image you were viewing is pre-selected — uncheck it to merge a different pair.</p>
     </div>
-    <div class="merge-anchor" id="mergeAnchor"></div>
     <div class="merge-layout">
       <span class="merge-layout-label">Merge layout</span>
       <div class="seg-group" id="mergeLayout">
@@ -792,7 +791,6 @@ async function init() {
   // ---- Merge feature -------------------------------------------------------
   const mergeModal = document.getElementById('mergeModal');
   const mergeGrid = document.getElementById('mergeGrid');
-  const mergeAnchor = document.getElementById('mergeAnchor');
   const mergeHint = document.getElementById('mergeHint');
   const mergeConfirm = document.getElementById('mergeConfirm');
   const mergeCancel = document.getElementById('mergeCancel');
@@ -843,39 +841,40 @@ async function init() {
 
   function updateMergeFooter() {
     const n = mergeSelection.size;
-    mergeHint.textContent = n === 0 ? 'No images selected' : `${n} image${n > 1 ? 's' : ''} selected — will merge ${n + 1} in total`;
-    mergeConfirm.disabled = n === 0;
-    mergeConfirm.textContent = n === 0 ? 'Merge' : `Merge ${n + 1} images`;
+    if (n < 2) {
+      mergeHint.textContent = n === 0 ? 'No images selected' : 'Select at least two images';
+    } else {
+      mergeHint.textContent = `${n} images selected`;
+    }
+    mergeConfirm.disabled = n < 2;
+    mergeConfirm.textContent = n < 2 ? 'Merge' : `Merge ${n} images`;
   }
 
   function openMergeModal() {
     saveCurrentFields();
     const anchorKey = keys[currentIndex];
-    mergeSelection = new Set();
+    // pre-select the image being viewed, but let the user uncheck it so a fresh
+    // pair can be merged without folding in the current (possibly merged) figure
+    mergeSelection = new Set([anchorKey]);
     setMergeOrientation('vertical');
     setMergeAlignment('center');
     document.getElementById('mergeGap').value = 24;
 
-    mergeAnchor.innerHTML = `
-      <img src="/images/${state[anchorKey].path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}" alt="${anchorKey}" />
-      <div>
-        <div class="tag">CURRENT</div>
-        <div class="desc">${describe(anchorKey)}</div>
-      </div>`;
-
-    const others = keys.filter(k => k !== anchorKey);
-    if (others.length === 0) {
-      mergeGrid.innerHTML = `<p style="color:#6b7280;font-size:13px;padding:8px;">No other images available to merge.</p>`;
+    if (keys.length < 2) {
+      mergeGrid.innerHTML = `<p style="color:#6b7280;font-size:13px;padding:8px;">Need at least two images to merge.</p>`;
     } else {
-      mergeGrid.innerHTML = others.map(k => `
-        <div class="merge-thumb" data-key="${k}">
+      mergeGrid.innerHTML = keys.map(k => {
+        const isCurrent = k === anchorKey;
+        return `
+        <div class="merge-thumb${isCurrent ? ' selected' : ''}" data-key="${k}">
           <div class="check">
             <svg width="12" height="12" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <img src="/images/${state[k].path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}" alt="${k}"
                onerror="this.style.visibility='hidden'" />
-          <div class="label"><span>${describe(k)}</span></div>
-        </div>`).join('');
+          <div class="label"><span>${describe(k)}${isCurrent ? ' · current' : ''}</span></div>
+        </div>`;
+      }).join('');
 
       mergeGrid.querySelectorAll('.merge-thumb').forEach(el => {
         el.addEventListener('click', () => {
@@ -896,9 +895,8 @@ async function init() {
   }
 
   async function confirmMerge() {
-    const anchorKey = keys[currentIndex];
     const selected = [...mergeSelection];
-    if (selected.length === 0) return;
+    if (selected.length < 2) return;
 
     let gap = parseInt(document.getElementById('mergeGap').value, 10);
     if (isNaN(gap) || gap < 0) gap = 0;
@@ -910,7 +908,7 @@ async function init() {
       const res = await fetch('/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keys: [anchorKey, ...selected], orientation: mergeOrientation, gap, align: mergeAlignment }),
+        body: JSON.stringify({ keys: selected, orientation: mergeOrientation, gap, align: mergeAlignment }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'merge failed');
