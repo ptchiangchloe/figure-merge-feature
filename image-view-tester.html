@@ -275,6 +275,23 @@
   }
   .merge-btn:hover { background: #f5f8ff; border-color: #2563eb; }
 
+  .reset-btn {
+    height: 28px;
+    padding: 0 12px;
+    background: white;
+    border: 1px solid #d8dade;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .reset-btn:hover { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+  .reset-btn:disabled { opacity: 0.5; cursor: default; }
+
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -392,6 +409,10 @@
         <button class="merge-btn" id="mergeBtn" title="Merge this image with others">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2h-3M9 12h6"/></svg>
           Merge
+        </button>
+        <button class="reset-btn" id="resetBtn" title="Discard merges/edits and restore the original images">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0 0V3m0 5h5"/></svg>
+          Reset
         </button>
         <span style="flex:1"></span>
         <span class="include-label">Include</span>
@@ -765,6 +786,48 @@ async function init() {
   mergeCancel.addEventListener('click', closeMergeModal);
   mergeConfirm.addEventListener('click', confirmMerge);
   mergeModal.addEventListener('click', e => { if (e.target === mergeModal) closeMergeModal(); });
+
+  // ---- Reset ---------------------------------------------------------------
+  function loadImagesIntoState(data) {
+    Object.keys(state).forEach(k => delete state[k]);
+    keys = Object.keys(data);
+    keys.forEach(k => {
+      const img = data[k];
+      state[k] = {
+        path: img.path,
+        captions: img.captions,
+        number: img.number,
+        tag: img.tag,
+        readable: img.readable,
+        callout_numbers: { ...img.callout_numbers },
+        include: true,
+      };
+      if (img.page != null) state[k].page = img.page;
+      if (img.dpi != null) state[k].dpi = img.dpi;
+      if (img.page_width_px != null) state[k].page_width_px = img.page_width_px;
+      if (img.page_height_px != null) state[k].page_height_px = img.page_height_px;
+      if (img.bbox_normalized != null) state[k].bbox_normalized = img.bbox_normalized;
+    });
+  }
+
+  const resetBtn = document.getElementById('resetBtn');
+  resetBtn.addEventListener('click', async () => {
+    if (!confirm('Reset to the original extracted images? This discards all merges and edits.')) return;
+    resetBtn.disabled = true;
+    try {
+      const res = await fetch('/reset', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'reset failed');
+      loadImagesIntoState(data);
+      currentIndex = 0;
+      imgCacheBust = Date.now();
+      renderMain();
+    } catch (err) {
+      alert('Reset failed: ' + err.message);
+    } finally {
+      resetBtn.disabled = false;
+    }
+  });
 
   renderMain();
 }

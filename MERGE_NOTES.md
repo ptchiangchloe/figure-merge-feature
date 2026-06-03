@@ -31,6 +31,9 @@
   click on the image itself).
 - On success the merged image replaces the current one, the absorbed entries
   disappear from the list, and the view jumps to the merged figure.
+- A **Reset** button (`POST /reset`) discards all merges/edits and restores the
+  original extracted images — it deletes the generated `merged_*` files and the
+  writable state copy so the original snapshot is served again.
 
 ## Data integrity
 - The **representative's** editable metadata (figure number, caption) is kept;

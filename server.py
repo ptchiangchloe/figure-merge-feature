@@ -71,6 +71,36 @@ def _resolve_image_path(filename):
     return None
 
 
+def _remove_merged_images():
+    """Delete merge outputs we generated, leaving the original crops intact."""
+    if not os.path.isdir(IMAGES_OUT):
+        return
+    for fn in os.listdir(IMAGES_OUT):
+        if fn.startswith("merged_"):
+            try:
+                os.remove(os.path.join(IMAGES_OUT, fn))
+            except OSError:
+                pass
+
+
+def _fresh_state():
+    """The original extracted state, discarding any merges/edits."""
+    # Local dev with the parser available: re-extract from scratch (this also
+    # rewrites STATE_OUT + the original crops).
+    if not ON_SERVERLESS and extract_figures is not None:
+        return extract_figures(
+            PDF_PATH, TEXTRACT_PATH, output_dir=IMAGES_OUT, state_json_path=STATE_OUT
+        )
+    # Otherwise drop the writable copy and fall back to the committed snapshot.
+    if STATE_OUT != COMMITTED_STATE and os.path.exists(STATE_OUT):
+        try:
+            os.remove(STATE_OUT)
+        except OSError:
+            pass
+    with open(COMMITTED_STATE) as f:
+        return json.load(f)
+
+
 # -----------------------------------------------------------------------------
 # Merge: image stitching
 # -----------------------------------------------------------------------------
@@ -316,6 +346,13 @@ def merge():
         "image": merged_entry,
         "state": new_state,
     })
+
+
+# discard merges/edits and restore the original extracted state
+@app.route('/reset', methods=['POST'])
+def reset():
+    _remove_merged_images()
+    return jsonify(_fresh_state())
 
 
 if __name__ == '__main__':
