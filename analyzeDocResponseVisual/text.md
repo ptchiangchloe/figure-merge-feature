@@ -1,0 +1,1 @@
+These images are for visual reference only — they show how bounding boxes (from analyzeDocResponse.json) map onto the page, and are not part of the product.

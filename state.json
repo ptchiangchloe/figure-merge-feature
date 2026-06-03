@@ -1,0 +1,146 @@
+{
+  "EXTRACTED_IMAGE_1": {
+    "path": "image1.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 1,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.08897125720977783,
+      "Top": 0.08931931853294373,
+      "Width": 0.05823129415512085,
+      "Height": 0.03869270533323288
+    }
+  },
+  "EXTRACTED_IMAGE_2": {
+    "path": "image2.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 1,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.23622927069664001,
+      "Top": 0.097575843334198,
+      "Width": 0.025562316179275513,
+      "Height": 0.022181537002325058
+    }
+  },
+  "EXTRACTED_IMAGE_3": {
+    "path": "image3.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 4,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.11611901968717575,
+      "Top": 0.08394577354192734,
+      "Width": 0.7667383328080177,
+      "Height": 0.2335018515586853
+    }
+  },
+  "EXTRACTED_IMAGE_4": {
+    "path": "image4.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 5,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.16755962371826172,
+      "Top": 0.39782023429870605,
+      "Width": 0.6694115996360779,
+      "Height": 0.4664892256259918
+    }
+  },
+  "EXTRACTED_IMAGE_5": {
+    "path": "image5.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 6,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.12345942109823227,
+      "Top": 0.3943944275379181,
+      "Width": 0.5371995568275452,
+      "Height": 0.267089307308197
+    }
+  },
+  "EXTRACTED_IMAGE_6": {
+    "path": "image6.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 6,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.1524915248155594,
+      "Top": 0.7398574948310852,
+      "Width": 0.27861908078193665,
+      "Height": 0.18806886672973633
+    }
+  },
+  "EXTRACTED_IMAGE_7": {
+    "path": "image7.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 7,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.15828964114189148,
+      "Top": 0.08354289084672928,
+      "Width": 0.6720670759677887,
+      "Height": 0.18750599771738052
+    }
+  },
+  "EXTRACTED_IMAGE_8": {
+    "path": "image8.png",
+    "captions": "",
+    "number": "",
+    "tag": "keep",
+    "readable": 1,
+    "callout_numbers": {},
+    "page": 8,
+    "dpi": 200,
+    "page_width_px": 1717,
+    "page_height_px": 2268,
+    "bbox_normalized": {
+      "Left": 0.1213860809803009,
+      "Top": 0.08540358394384384,
+      "Width": 0.5256270170211792,
+      "Height": 0.4401531219482422
+    }
+  }
+}
