@@ -608,12 +608,18 @@ async function init() {
       if (img.bbox_normalized != null) state[k].bbox_normalized = img.bbox_normalized;
   });
 
+  // resolve an image source: merged figures arrive as inline data URLs, while
+  // originals are served from /images
+  function imgSrc(path) {
+    if (typeof path === 'string' && path.startsWith('data:')) return path;
+    return `/images/${path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}`;
+  }
+
   function renderMain() {
     const key = keys[currentIndex];
     const s = state[key];
 
-    const bust = imgCacheBust ? `?v=${imgCacheBust}` : '';
-    document.getElementById('imageArea').innerHTML = `<img src="/images/${s.path}${bust}" alt="${key}" style="cursor:zoom-in" title="Click for full view" onerror="this.outerHTML='<div class=\\'image-placeholder\\'>Image not found: ${s.path}</div>'" />`;
+    document.getElementById('imageArea').innerHTML = `<img src="${imgSrc(s.path)}" alt="${key}" style="cursor:zoom-in" title="Click for full view" onerror="this.outerHTML='<div class=\\'image-placeholder\\'>Image not found: ${key}</div>'" />`;
     const mainImg = document.querySelector('#imageArea img');
     if (mainImg) mainImg.addEventListener('click', openImageModal);
 
@@ -690,7 +696,9 @@ async function init() {
     keys.forEach(k => {
       const s = state[k];
       display[k] = {
-        path: s.path,
+        path: (typeof s.path === 'string' && s.path.startsWith('data:'))
+          ? `${s.path.slice(0, 32)}… (inline merged image, ${s.path.length} chars)`
+          : s.path,
         number: s.number,
         tag: s.tag,
         readable: s.readable,
@@ -776,7 +784,7 @@ async function init() {
 
   function openImageModal() {
     const s = state[keys[currentIndex]];
-    imageModalImg.src = `/images/${s.path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}`;
+    imageModalImg.src = imgSrc(s.path);
     imageModal.classList.add('open');
   }
   function closeImageModal() { imageModal.classList.remove('open'); }
@@ -870,7 +878,7 @@ async function init() {
           <div class="check">
             <svg width="12" height="12" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <img src="/images/${state[k].path}${imgCacheBust ? `?v=${imgCacheBust}` : ''}" alt="${k}"
+          <img src="${imgSrc(state[k].path)}" alt="${k}"
                onerror="this.style.visibility='hidden'" />
           <div class="label"><span>${describe(k)}${isCurrent ? ' · current' : ''}</span></div>
         </div>`;
@@ -902,48 +910,48 @@ async function init() {
     if (isNaN(gap) || gap < 0) gap = 0;
     if (gap > 500) gap = 500;
 
+    // send the full panel data for the selected images so the server can build
+    // the merged figure without relying on any server-side state (this keeps
+    // local and serverless behaviour identical and lets merges stack correctly)
+    const panels = {};
+    selected.forEach(k => { panels[k] = state[k]; });
+
     mergeConfirm.disabled = true;
     mergeConfirm.textContent = 'Merging…';
     try {
       const res = await fetch('/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keys: selected, orientation: mergeOrientation, gap, align: mergeAlignment }),
+        body: JSON.stringify({ keys: selected, panels, orientation: mergeOrientation, gap, align: mergeAlignment }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'merge failed');
 
       const mergedKey = data.merged_key;
       const removed = data.removed_keys || [];
+      const merged = data.image;
 
-      // snapshot this session's edits so we can re-apply them after syncing to
-      // the server's authoritative state
-      const edits = {};
-      keys.forEach(k => {
-        edits[k] = {
-          number: state[k].number,
-          captions: state[k].captions,
-          callout_numbers: { ...state[k].callout_numbers },
-          include: state[k].include,
-        };
-      });
+      // the client owns the state — apply the merge surgically: drop absorbed
+      // panels and replace the representative with the merged figure (its image
+      // arrives inline as a data URL, so it survives across serverless instances)
+      removed.forEach(k => { delete state[k]; });
+      keys = keys.filter(k => !removed.includes(k));
 
-      // rebuild keys + state from the server response so the UI (and the Live
-      // State viewer) exactly mirror the persisted state
-      loadImagesIntoState(data.state);
-
-      keys.forEach(k => {
-        const e = edits[k];
-        if (!e) return;
-        state[k].number = e.number;
-        state[k].captions = e.captions;
-        state[k].include = e.include;
-        state[k].callout_numbers = { ...e.callout_numbers };
-        if (k === mergedKey) {
-          // fold in callout labels from the panels that were absorbed
-          removed.forEach(r => { if (edits[r]) Object.assign(state[k].callout_numbers, edits[r].callout_numbers); });
-        }
-      });
+      state[mergedKey] = {
+        path: merged.path,
+        captions: merged.captions,
+        number: merged.number,
+        tag: merged.tag,
+        readable: merged.readable,
+        callout_numbers: { ...merged.callout_numbers },
+        include: true,
+        merged_from: merged.merged_from,
+      };
+      if (merged.page != null) state[mergedKey].page = merged.page;
+      if (merged.dpi != null) state[mergedKey].dpi = merged.dpi;
+      if (merged.page_width_px != null) state[mergedKey].page_width_px = merged.page_width_px;
+      if (merged.page_height_px != null) state[mergedKey].page_height_px = merged.page_height_px;
+      if (merged.bbox_normalized != null) state[mergedKey].bbox_normalized = merged.bbox_normalized;
 
       currentIndex = Math.max(0, keys.indexOf(mergedKey));
       imgCacheBust = Date.now();

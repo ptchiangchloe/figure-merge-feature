@@ -121,6 +121,21 @@ def _grey_png_buffer(pil_img):
     return buf
 
 
+def _load_panel_image(path):
+    """Open a panel image as greyscale. `path` may be a committed filename or an
+    inline `data:image/...;base64,` URL (used for already-merged panels so the
+    request is self-contained and doesn't depend on any server-side file)."""
+    from PIL import Image
+    if isinstance(path, str) and path.startswith("data:"):
+        import base64
+        b64 = path.split(",", 1)[1]
+        return Image.open(BytesIO(base64.b64decode(b64))).convert("L")
+    resolved = _resolve_image_path(path)
+    if resolved is None:
+        raise FileNotFoundError(path)
+    return Image.open(resolved).convert("L")
+
+
 def _pad_image(pil_img, pad):
     """Return the image centred on a white canvas with `pad` px margin on all sides."""
     if pad <= 0:
@@ -224,12 +239,7 @@ def _stitch_pngs(entries, orientation, gap=_STITCH_GAP_PX, align="center"):
     """
     from PIL import Image
 
-    imgs = []
-    for _, e in entries:
-        path = _resolve_image_path(e["path"])
-        if path is None:
-            raise FileNotFoundError(e["path"])
-        imgs.append(Image.open(path).convert("L"))
+    imgs = [_load_panel_image(e["path"]) for _, e in entries]
 
     total_gap = gap * (len(imgs) - 1)
 
@@ -344,14 +354,22 @@ def merge():
     if len(keys) < 2:
         return jsonify({"error": "merge requires at least two distinct image keys"}), 400
 
-    state = _load_state()
-    missing = [k for k in keys if k not in state]
+    # The client sends the panels it wants to merge (path + page + bbox + callouts)
+    # so this endpoint is fully stateless: it never reads or writes server-side
+    # state. That keeps behaviour identical across local and serverless hosts,
+    # where /tmp is per-instance and doesn't survive between requests.
+    panels = data.get("panels") or {}
+    if not panels:
+        # back-compat: fall back to any server-side state if the client didn't
+        # send panel data
+        panels = _load_state()
+    missing = [k for k in keys if k not in panels]
     if missing:
         return jsonify({"error": f"unknown image keys: {missing}"}), 400
 
     # order panels by reading order (page, then top, then left) so the merged
     # image reads A -> B -> ... and the top-left panel becomes the representative
-    entries = [(k, state[k]) for k in keys]
+    entries = [(k, panels[k]) for k in keys]
 
     def reading_order(item):
         e = item[1]
@@ -367,15 +385,15 @@ def merge():
     except Exception as exc:  # pragma: no cover - defensive
         return jsonify({"error": f"could not build merged image: {exc}"}), 500
 
-    os.makedirs(IMAGES_OUT, exist_ok=True)
-    merged_filename = f"merged_{rep_key}.png"
-    with open(os.path.join(IMAGES_OUT, merged_filename), "wb") as f:
-        f.write(buf.read())
+    # return the merged image inline so the client never has to fetch it back
+    # from a (possibly different) serverless instance
+    import base64
+    data_url = "data:image/png;base64," + base64.b64encode(buf.read()).decode("ascii")
 
     # build the merged entry from the representative, with the union bbox (when the
     # panels share a page) and the combined callout labels from every panel
-    merged_entry = dict(state[rep_key])
-    merged_entry["path"] = merged_filename
+    merged_entry = dict(panels[rep_key])
+    merged_entry["path"] = data_url
     if _same_page(entries):
         merged_entry["bbox_normalized"] = _union_bbox(entries)
 
@@ -386,24 +404,12 @@ def merge():
     merged_entry["callout_numbers"] = combined_callouts
     merged_entry["merged_from"] = ordered_keys
 
-    # rebuild state: replace the representative in place, drop the other panels
     removed_keys = [k for k in ordered_keys if k != rep_key]
-    new_state = {}
-    for k, v in state.items():
-        if k == rep_key:
-            new_state[k] = merged_entry
-        elif k in removed_keys:
-            continue
-        else:
-            new_state[k] = v
-
-    _save_state(new_state)
 
     return jsonify({
         "merged_key": rep_key,
         "removed_keys": removed_keys,
         "image": merged_entry,
-        "state": new_state,
     })
 
 
