@@ -310,22 +310,11 @@ def get_image(filename):
 # returns the full state dict
 @app.route('/state')
 def get_state():
-    # On a read-only serverless filesystem we can't re-run extraction (it writes
-    # images + state.json). The repo already ships the extracted output, so serve
-    # that instead — identical content, no writes required.
-    if ON_SERVERLESS or extract_figures is None:
-        path = STATE_OUT if os.path.exists(STATE_OUT) else COMMITTED_STATE
-        with open(path) as f:
-            return jsonify(json.load(f))
-
-    # Local dev: re-run extraction so parser changes are reflected live.
-    state = extract_figures(
-        PDF_PATH,
-        TEXTRACT_PATH,
-        output_dir=IMAGES_OUT,
-        state_json_path=STATE_OUT,
-    )
-    return jsonify(state)
+    # Always prefer the saved working state so merges/edits survive a page
+    # reload. _load_state() reads the writable copy first, then the committed
+    # snapshot, and only re-extracts from the PDF when no state exists yet.
+    # (Use the Reset button to discard merges and re-extract from scratch.)
+    return jsonify(_load_state())
 
 
 # combine two or more extracted images into a single figure
