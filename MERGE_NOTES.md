@@ -8,7 +8,10 @@
   panel becomes the **representative** and keeps its key. The others are removed
   from the state and the image list.
 - **Stitching strategy** (two tiers):
-  1. **Same page → re-crop the union bbox from the PDF.** Each entry already
+  0. **Explicit user choice (horizontal / vertical).** The merge UI lets the user
+     pick how the panels are combined; that orientation is sent to the endpoint
+     and the crops are stitched side-by-side or stacked accordingly.
+  1. **Same page (auto) → re-crop the union bbox from the PDF.** Each entry already
      carries `bbox_normalized` + `page` + `dpi`. I take the smallest box enclosing
      all panels and re-rasterize that region straight from `article.pdf` at the
      original DPI. This reproduces the panels' *true* spatial layout
@@ -66,3 +69,7 @@
   result inside the modal before confirming.
 - Let the user pick which panel's metadata wins, instead of always the
   top-left one.
+- Improve the mobile experience: the review UI and merge modal are currently
+  laid out for desktop; on small screens the image card + fields panel should
+  stack responsively, the merge thumbnail grid and controls need touch-friendly
+  sizing, and the full-view lightbox should support pinch-to-zoom.

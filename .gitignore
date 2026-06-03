@@ -16,3 +16,6 @@ env/
 # Env files
 .env
 .env.local
+
+# Merge feature runtime output (regenerated at runtime)
+images/merged_*
