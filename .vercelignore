@@ -1,0 +1,9 @@
+.git
+venv
+.venv
+env
+__pycache__
+*.pyc
+
+# readme-only illustrations, not needed at runtime
+analyzeDocResponseVisual
